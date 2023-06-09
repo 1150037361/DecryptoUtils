@@ -40,9 +40,9 @@ public class BurpExtender implements IBurpExtender, ITab, IMessageEditorTabFacto
                 ui = new MainUI(BurpExtender.this);
                 rootPanel = new JPanel();
 
+                rootPanel.setLayout(new BoxLayout(rootPanel, 1));
                 rootPanel.add(ui.$$$getRootComponent$$$());
-                rootPanel.setLayout(new GridLayout(1, 1));
-                callbacks.customizeUiComponent(rootPanel);
+                //callbacks.customizeUiComponent(rootPanel);
                 callbacks.addSuiteTab(BurpExtender.this);
             }
         });

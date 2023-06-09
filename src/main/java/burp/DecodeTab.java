@@ -2,15 +2,13 @@ package burp;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import utils.AesUtil;
-import utils.SM2Util;
-import utils.SM4Util;
+import utils.*;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.net.URLDecoder;
+import cn.hutool.core.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -50,7 +48,7 @@ public class DecodeTab implements IMessageEditorTab {
         JPanel buttonPanel = new JPanel();
         deCryptoButton = new JButton("解密");
         enCryptoButton = new JButton("加密");
-        JButton testButton = new JButton("测试");
+        //JButton testButton = new JButton("测试");
 
 
         cryptPanel.setLayout(new BorderLayout(0, 0));
@@ -59,19 +57,19 @@ public class DecodeTab implements IMessageEditorTab {
         buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         // buttonPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
-        buttonPanel.add(testButton);
+        //buttonPanel.add(testButton);
         buttonPanel.add(enCryptoButton);
         buttonPanel.add(deCryptoButton);
 
 
         cryptPanel.add(buttonPanel, BorderLayout.NORTH);
         cryptPanel.add(txtInput.getComponent(), BorderLayout.CENTER);
-        testButton.addActionListener(new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(null, new String(getSelectedData()) + "\n" + helpers.bytesToString(getMessage()), "信息", JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
+//        testButton.addActionListener(new AbstractAction() {
+//            @Override
+//            public void actionPerformed(ActionEvent e) {
+//                JOptionPane.showMessageDialog(null, new String(getSelectedData()) + "\n" + helpers.bytesToString(getMessage()), "信息", JOptionPane.INFORMATION_MESSAGE);
+//            }
+//        });
 
         enCryptoButton.addActionListener(new AbstractAction() {
             @Override
@@ -111,29 +109,58 @@ public class DecodeTab implements IMessageEditorTab {
             isRequest = false;
         }
         if (source.contains("\\\"")) {
-            source = source.replace("\\\"", "\"").replace("\\n","").replace("\\t","");
+            source = source.replace("\\\"", "\"").replace("\\n", "").replace("\\t", "");
             burpExtender.printLog(source);
         }
         switch (cryptoType) {
             case "AES":
                 try {
-                    aesCrypto(true, URLDecoder.decode(source, "UTF-8").replace(" ", "+"), isRequest);
+                    aesCrypto(true, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"), isRequest);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
+                }
+                break;
+            case "DES":
+                try {
+                    desCrypto(true, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"), isRequest);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
+                }
+                break;
+            case "3DES":
+                try {
+                    desTripleCrypto(true, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"), isRequest);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
+                }
+                break;
+            case "RSA":
+                try {
+                    rsaCrypto(true, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"), isRequest);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
                 }
                 break;
             case "SM4":
                 try {
-                    sm4Crypto(true, URLDecoder.decode(source, "UTF-8").replace(" ", "+"), isRequest);
+                    sm4Crypto(true, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"), isRequest);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
                 }
                 break;
             case "SM2":
                 try {
-                    sm2Crypto(true, URLDecoder.decode(source, "UTF-8").replace(" ", "+"), isRequest);
+                    sm2Crypto(true, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"), isRequest);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "请检查公私钥是否正确！！", "错误！", JOptionPane.ERROR_MESSAGE);
+                }
+                break;
+            case "JSEx":
+                try {
+                    System.out.println("加解密前的内容：" + source);
+                    jsCrypto(true, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"),isRequest);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "请检查代码是否正确！！", "错误！", JOptionPane.ERROR_MESSAGE);
                 }
                 break;
         }
@@ -156,23 +183,52 @@ public class DecodeTab implements IMessageEditorTab {
         switch (cryptoType) {
             case "AES":
                 try {
-                    aesCrypto(false, URLDecoder.decode(source, "UTF-8").replace(" ", "+"), isRequest);
+                    aesCrypto(false, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"), isRequest);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
+                }
+                break;
+            case "DES":
+                try {
+                    desCrypto(false, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"), isRequest);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
+                }
+                break;
+            case "3DES":
+                try {
+                    desTripleCrypto(false, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"), isRequest);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
+                }
+                break;
+            case "RSA":
+                try {
+                    rsaCrypto(false, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"), isRequest);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
                 }
                 break;
             case "SM4":
                 try {
-                    sm4Crypto(false, URLDecoder.decode(source, "UTF-8").replace(" ", "+"), isRequest);
+                    sm4Crypto(false, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"), isRequest);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
                 }
                 break;
             case "SM2":
                 try {
-                    sm2Crypto(false, URLDecoder.decode(source, "UTF-8").replace(" ", "+"), isRequest);
+                    sm2Crypto(false, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"), isRequest);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "请检查公私钥是否正确！！", "错误！", JOptionPane.ERROR_MESSAGE);
+                }
+                break;
+            case "JSEx":
+                try {
+                    jsCrypto(false, URLDecoder.decode(source, StandardCharsets.UTF_8).replace(" ", "+"), isRequest);
+
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "请检查代码是否正确！！", "错误！", JOptionPane.ERROR_MESSAGE);
                 }
                 break;
         }
@@ -265,7 +321,6 @@ public class DecodeTab implements IMessageEditorTab {
 
     //aes加解密方法
     public void aesCrypto(boolean isEncode, String data, boolean isRequest) {
-
         if (isEncode) {
             if (isRequest) {
                 String result = AesUtil.Encrypt(data, conf.get("reqCryptoKey"), conf.get("reqCryptoPadding"), conf.get("reqCryptoCode"), conf.get("reqCryptoIv"));
@@ -281,6 +336,72 @@ public class DecodeTab implements IMessageEditorTab {
                 updateContent(result);
             } else {
                 String result = AesUtil.Decrypt(data, conf.get("resCryptoKey"), conf.get("resCryptoPadding"), conf.get("resCryptoIv"));
+                updateContent(result);
+            }
+        }
+    }
+
+    //des加密算法
+    public void desCrypto(boolean isEncode, String data, boolean isRequest) {
+        if (isEncode) {
+            if (isRequest) {
+                String result = DesUtil.enCrypto(data, conf.get("reqCryptoKey"), conf.get("reqCryptoPadding"), conf.get("reqCryptoCode"), conf.get("reqCryptoIv"));
+                updateContent(result);
+            } else {
+                String result = DesUtil.enCrypto(data, conf.get("resCryptoKey"), conf.get("resCryptoPadding"), conf.get("resCryptoCode"), conf.get("resCryptoIv"));
+                updateContent(result);
+            }
+
+        } else {
+            if (isRequest) {
+                String result = DesUtil.deCrypto(data, conf.get("reqCryptoKey"), conf.get("reqCryptoPadding"), conf.get("reqCryptoIv"));
+                updateContent(result);
+            } else {
+                String result = DesUtil.deCrypto(data, conf.get("resCryptoKey"), conf.get("resCryptoPadding"), conf.get("resCryptoIv"));
+                updateContent(result);
+            }
+        }
+    }
+
+    //3des加密算法
+    public void desTripleCrypto(boolean isEncode, String data, boolean isRequest) {
+        if (isEncode) {
+            if (isRequest) {
+                String result = DesUtil.enTripleDES(data, conf.get("reqCryptoKey"), conf.get("reqCryptoPadding"), conf.get("reqCryptoCode"), conf.get("reqCryptoIv"));
+                updateContent(result);
+            } else {
+                String result = DesUtil.enTripleDES(data, conf.get("resCryptoKey"), conf.get("resCryptoPadding"), conf.get("resCryptoCode"), conf.get("resCryptoIv"));
+                updateContent(result);
+            }
+
+        } else {
+            if (isRequest) {
+                String result = DesUtil.deTripleCrypto(data, conf.get("reqCryptoKey"), conf.get("reqCryptoPadding"), conf.get("reqCryptoIv"));
+                updateContent(result);
+            } else {
+                String result = DesUtil.deTripleCrypto(data, conf.get("resCryptoKey"), conf.get("resCryptoPadding"), conf.get("resCryptoIv"));
+                updateContent(result);
+            }
+        }
+    }
+
+    //rsa加密算法
+    public void rsaCrypto(boolean isEncode, String data, boolean isRequest) {
+        if (isEncode) {
+            if (isRequest) {
+                String result = RsaUtil.enCrypto(data, conf.get("reqCryptoPublicKey"), conf.get("reqCryptoCode"));
+                updateContent(result);
+            } else {
+                String result = RsaUtil.enCrypto(data, conf.get("resCryptoPublicKey"), conf.get("resCryptoCode"));
+                updateContent(result);
+            }
+
+        } else {
+            if (isRequest) {
+                String result = RsaUtil.deCrypto(data, conf.get("reqCryptoKey"));
+                updateContent(result);
+            } else {
+                String result = RsaUtil.deCrypto(data, conf.get("resCryptoKey"));
                 updateContent(result);
             }
         }
@@ -312,10 +433,10 @@ public class DecodeTab implements IMessageEditorTab {
     public void sm2Crypto(boolean isEncode, String data, boolean isRequest) {
         if (isEncode) {
             if (isRequest) {
-                String result = SM2Util.Encrypt(data, conf.get("reqCryptoPublicKey"));
+                String result = SM2Util.Encrypt(data, conf.get("reqCryptoPublicKey"), conf.get("reqCryptoCode"));
                 updateContent(result);
             } else {
-                String result = SM2Util.Encrypt(data, conf.get("resCryptoPublicKey"));
+                String result = SM2Util.Encrypt(data, conf.get("resCryptoPublicKey"), conf.get("resCryptoCode"));
                 updateContent(result);
             }
         } else {
@@ -324,6 +445,28 @@ public class DecodeTab implements IMessageEditorTab {
                 updateContent(result);
             } else {
                 String result = SM2Util.Decrypt(data, conf.get("resCryptoKey"));
+                updateContent(result);
+            }
+        }
+    }
+
+    public void jsCrypto(boolean isEncode, String data, boolean isRequest) {
+        if (isEncode) {
+            if (isRequest) {
+                String result = burpExtender.getUi().engine.encode(data);
+                System.out.println("加解密后的内容：" + result);
+                updateContent(result);
+            } else {
+                String result = burpExtender.getUi().engine.encode(data);
+                System.out.println("加解密后的内容：" + result);
+                updateContent(result);
+            }
+        } else {
+            if (isRequest) {
+                String result = burpExtender.getUi().engine.decode(data);
+                updateContent(result);
+            } else {
+                String result = burpExtender.getUi().engine.decode(data);
                 updateContent(result);
             }
         }

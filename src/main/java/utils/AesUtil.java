@@ -98,4 +98,24 @@ public class AesUtil {
         }
         return raw;
     }
+
+    public static String DecryptByBase64Key(String src, byte[] key,byte[]iv) {
+        AES aes = new AES(Mode.CBC, Padding.PKCS5Padding, key,iv);
+        return aes.decryptStr(src);
+    }
+
+    public static String DecryptByBase64Key2(String src, String key) {
+        AES aes = new AES(Mode.ECB, Padding.ZeroPadding, generateKey(key));
+        return aes.decryptStr(src);
+    }
+
+    public static void main(String[] args) {
+        String keyData = "oXOgA41QmYp-NXtjk7Y-0pSXWjms";
+        String ivData = "sd++jdCMEcgIYls0i/BSwQ==";
+        byte[] key = Base64.getMimeDecoder().decode(keyData);
+        byte[] iv = Base64.getDecoder().decode(ivData);
+        System.out.println(key.length);
+        String data = "XKB+y/nAzcZno8wGdzAveJSLryR+MokrizezAQbW/y66aLG9fDJFiQbsFLn0O16tmm3u1fUYV9+UDpA2Y+kPt3mY3RZl7mde2VBdgWSAL04915KIqshkmF3iulTv8vV/B1mZ0GHSXFnl/cgAzX29mHexzDKCQWRQsIpv9PL3GELpuQsPdMjKuNo6fJelQrtHljH97sUKiPGrYSA6zkgrFg==";
+        System.out.println(DecryptByBase64Key(data, key,iv));
+    }
 }

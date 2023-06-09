@@ -1,53 +1,72 @@
-import com.alibaba.fastjson.JSON;
-import org.fife.rsta.ac.LanguageSupportFactory;
-import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import org.mozilla.javascript.Context;
+import org.mozilla.javascript.Scriptable;
 
-import javax.swing.*;
-import java.awt.*;
-import java.nio.charset.StandardCharsets;
+import java.io.InputStream;
+import java.util.Scanner;
 
 public class Test {
     public static void main(String[] args) throws Exception {
-        Frame a = new Frame();
-        JTextArea jTextArea = new RSyntaxTextArea(5,10);
-        RSyntaxTextArea area = (RSyntaxTextArea) jTextArea;
-        area.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JAVASCRIPT);
-        LanguageSupportFactory.get().register(area);
-        area.setMarkOccurrences(true);
-        area.setCodeFoldingEnabled(true);
-        area.setTabsEmulated(true);
-        a.add(jTextArea);
-        a.setVisible(true);
-    }
-    public static boolean isJson(String content) {
+        Context rhinoContext = Context.enter();
         try {
-            Object obj = JSON.parse(content);
-            return true;
+            // 初始化全局作用域对象
+            Scriptable scope = rhinoContext.initStandardObjects();
+            rhinoContext.evaluateString(scope,getCryptoJs(), "crypto-js.js",1,null);
+
+            // 使用 CryptoJS 进行 MD5 加密
+            String code = "function wxEncryptData (word) {\n" +
+                    "    var key = CryptoJS.SHA1(CryptoJS.SHA1(\"KEY@20220306.\")).toString().substring(0, 32);\n" +
+                    "    var srcs = CryptoJS.enc.Utf8.parse(word);\n" +
+                    "    var encrypted = CryptoJS.AES.encrypt(srcs, CryptoJS.enc.Hex.parse(key), {\n" +
+                    "        mode: CryptoJS.mode.ECB,\n" +
+                    "        padding: CryptoJS.pad.Pkcs7\n" +
+                    "    })\n" +
+                    "    return encrypted.ciphertext.toString().toUpperCase();\n" +
+                    "};\n" +
+                    "\n" +
+                    "function wxDecryptData (data) {\n" +
+                    "    const wordArray = CryptoJS.enc.Hex.parse(data)\n" +
+                    "    var base64Word = CryptoJS.enc.Base64.stringify(wordArray)\n" +
+                    "    var key = CryptoJS.SHA1(CryptoJS.SHA1(\"KEY@20220306.\")).toString().substring(0, 32);\n" +
+                    "    var encrypted = CryptoJS.AES.decrypt(base64Word, CryptoJS.enc.Hex.parse(key), {\n" +
+                    "        mode: CryptoJS.mode.ECB,\n" +
+                    "        padding: CryptoJS.pad.Pkcs7\n" +
+                    "    })\n" +
+                    "    return CryptoJS.enc.Utf8.stringify(encrypted).toString()\n" +
+                    "};";
+            rhinoContext.evaluateString(scope,code, "code.js",1,null);
+            String name = "wxDecryptData";
+            String data = "2D2C9A7EC246F50543C95ADF676E3430";
+            Object result = rhinoContext.evaluateString(scope, name + "('" + data + "')", "<cmd>", 1, null);
+            System.out.println(result);
+//            String input = "Hello, World!";
+//            String md5Hash = (String) engine.eval("CryptoJS.MD5('" + input + "').toString()");
+//
+//            System.out.println("MD5 hash: " + md5Hash);
+
         } catch (Exception e) {
-            return false;
+            e.printStackTrace();
         }
     }
 
-    public static byte[] generateKey(String key){
-        byte[] keys = key.getBytes(StandardCharsets.UTF_8);
-        byte[] raw = new byte[16];
-        byte[] plusbyte={ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
-        for(int i=0;i<16;i++)
-        {
-            if (keys.length > i)
-                raw[i] = keys[i];
-            else
-                raw[i] = plusbyte[0];
-        }
-        return raw;
-    }
+    public static String getCryptoJs() {
+        String result = null;
+        ClassLoader classLoader = Test.class.getClassLoader();
+        InputStream inputStream = classLoader.getResourceAsStream("crypto-js/crypto-js.js");
+        if (inputStream != null) {
+            try (Scanner scanner = new Scanner(inputStream, "UTF-8")) {
+                StringBuilder stringBuilder = new StringBuilder();
 
-    public static byte[] replaceBytes(byte[] source, int start, int end, byte[] replacement) {
-        byte[] result = new byte[start + replacement.length + (source.length - end - 1)];
-        System.arraycopy(source, 0, result, 0, start); // 复制 source 中的前半部分
-        System.arraycopy(replacement, 0, result, start, replacement.length); // 复制 replacement
-        System.arraycopy(source, end+1, result, start+replacement.length, source.length-end-1); // 复制 source 中的后半部分
+                // 逐行读取文件内容并拼接到 StringBuilder
+                while (scanner.hasNextLine()) {
+                    String line = scanner.nextLine();
+                    stringBuilder.append(line).append("\n");
+                }
+
+                result = stringBuilder.toString();
+            }
+        } else {
+            System.out.println("文件不存在或无法读取。");
+        }
         return result;
     }
 }

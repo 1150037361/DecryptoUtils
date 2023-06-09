@@ -8,11 +8,11 @@ import org.fife.rsta.ac.LanguageSupportFactory;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rtextarea.RTextScrollPane;
-import utils.AesUtil;
-import utils.SM2Util;
-import utils.SM4Util;
+import utils.*;
+import utils.exjs.JsEngine;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.FontUIResource;
 import javax.swing.text.StyleContext;
 import java.awt.*;
@@ -81,12 +81,18 @@ public class MainUI {
     private JLabel resPublicKeyLabel;
     private JButton resSaveConfButton;
     private JLabel reqParameterLabel;
-    private JTextArea codeTextArea;
-    private JButton button1;
-    private JButton button2;
+    private RSyntaxTextArea codeTextArea;
     private JPanel codeEditorPanel;
-    private JScrollPane codeScPanel;
-    private RSyntaxTextArea codeArea;
+    private JPanel infoPanel;
+    private JTextField encodeTextField;
+    private JTextField decodeTextField;
+    private JButton exSaveBt;
+    private JLabel enLabel;
+    private JLabel deLabel;
+    private JPanel enPanel;
+    private JPanel dePanel;
+    private RTextScrollPane codeScPanel;
+    public JsEngine engine;
 
 
     public MainUI() {
@@ -99,10 +105,13 @@ public class MainUI {
     }
 
     public void Init() {
+        $$$setupUI$$$();
 
         //编码工具初始化
         publicLable.setVisible(false);
         publicKeyTextField.setVisible(false);
+        ivLabel.setVisible(false);
+        ivTextField.setVisible(false);
 
         //请求配置默认初始化
         reqIvLabel.setVisible(false);
@@ -128,6 +137,27 @@ public class MainUI {
                             JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
                         }
                         break;
+                    case "DES":
+                        try {
+                            desCrypto(true, URLDecoder.decode(sourceTextArea.getText(), "UTF-8").replace(" ", "+"));
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
+                        }
+                        break;
+                    case "3DES":
+                        try {
+                            desTripleCrypto(true, URLDecoder.decode(sourceTextArea.getText(), "UTF-8").replace(" ", "+"));
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
+                        }
+                        break;
+                    case "RSA":
+                        try {
+                            rsaCrypto(true, URLDecoder.decode(sourceTextArea.getText(), "UTF-8").replace(" ", "+"));
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
+                        }
+                        break;
                     case "SM4":
                         try {
                             sm4Crypto(true, URLDecoder.decode(sourceTextArea.getText(), "UTF-8").replace(" ", "+"));
@@ -140,6 +170,13 @@ public class MainUI {
                             sm2Crypto(true, URLDecoder.decode(sourceTextArea.getText(), "UTF-8").replace(" ", "+"));
                         } catch (Exception ex) {
                             JOptionPane.showMessageDialog(null, "请检查公私钥是否正确！！", "错误！", JOptionPane.ERROR_MESSAGE);
+                        }
+                        break;
+                    case "JSEx":
+                        try {
+                            jsCrypto(true, URLDecoder.decode(sourceTextArea.getText(), "UTF-8").replace(" ", "+"));
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(null, "请检查代码是否正确！！", "错误！", JOptionPane.ERROR_MESSAGE);
                         }
                         break;
                 }
@@ -158,6 +195,27 @@ public class MainUI {
                             JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
                         }
                         break;
+                    case "DES":
+                        try {
+                            desCrypto(false, URLDecoder.decode(sourceTextArea.getText(), "UTF-8").replace(" ", "+"));
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
+                        }
+                        break;
+                    case "3DES":
+                        try {
+                            desTripleCrypto(false, URLDecoder.decode(sourceTextArea.getText(), "UTF-8").replace(" ", "+"));
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
+                        }
+                        break;
+                    case "RSA":
+                        try {
+                            rsaCrypto(false, URLDecoder.decode(sourceTextArea.getText(), "UTF-8").replace(" ", "+"));
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(null, "请检查密钥或填充是否正确", "错误！", JOptionPane.ERROR_MESSAGE);
+                        }
+                        break;
                     case "SM4":
                         try {
                             sm4Crypto(false, URLDecoder.decode(sourceTextArea.getText(), "UTF-8").replace(" ", "+"));
@@ -172,6 +230,13 @@ public class MainUI {
                             JOptionPane.showMessageDialog(null, "请检查公私钥是否正确！！", "错误！", JOptionPane.ERROR_MESSAGE);
                         }
                         break;
+                    case "JSEx":
+                        try {
+                            jsCrypto(false, URLDecoder.decode(sourceTextArea.getText(), "UTF-8").replace(" ", "+"));
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(null, "请检查代码是否正确！！", "错误！", JOptionPane.ERROR_MESSAGE);
+                        }
+                        break;
                 }
             }
         });
@@ -180,11 +245,9 @@ public class MainUI {
         cryptoTypeComboBox.addActionListener(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (cryptoTypeComboBox.getSelectedItem().equals("SM2")) {
+                if (cryptoTypeComboBox.getSelectedItem().equals("SM2") || cryptoTypeComboBox.getSelectedItem().equals("RSA")) {
                     paddingLabel.setVisible(false);
                     panddingTypeComboBox.setVisible(false);
-                    codeTypeLabel.setVisible(false);
-                    codeTypeComboBox.setVisible(false);
                     ivLabel.setVisible(false);
                     ivTextField.setVisible(false);
                     publicLable.setVisible(true);
@@ -198,19 +261,39 @@ public class MainUI {
                     ivTextField.setVisible(true);
                     publicLable.setVisible(false);
                     publicKeyTextField.setVisible(false);
+                    if (String.valueOf(panddingTypeComboBox.getSelectedItem()).startsWith("CBC")) {
+                        ivLabel.setVisible(true);
+                        ivTextField.setVisible(true);
+                    } else {
+                        ivLabel.setVisible(false);
+                        ivTextField.setVisible(false);
+                    }
                 }
             }
         });
+
+        //编码工具，填充框添加监听
+        panddingTypeComboBox.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (String.valueOf(panddingTypeComboBox.getSelectedItem()).startsWith("CBC")) {
+                    ivLabel.setVisible(true);
+                    ivTextField.setVisible(true);
+                } else {
+                    ivLabel.setVisible(false);
+                    ivTextField.setVisible(false);
+                }
+            }
+        });
+
 
         //请求配置，加密多选框添加事件监听
         reqCryptoTypeBox.addActionListener(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (reqCryptoTypeBox.getSelectedItem().equals("SM2")) {
+                if (reqCryptoTypeBox.getSelectedItem().equals("SM2") || reqCryptoTypeBox.getSelectedItem().equals("RSA")) {
                     reqPanddingLabel.setVisible(false);
                     reqPanddingBox.setVisible(false);
-                    reqCodeTypeLabel.setVisible(false);
-                    reqCodeTypeBox.setVisible(false);
                     reqIvLabel.setVisible(false);
                     reqIvField.setVisible(false);
                     reqPublicKeyLabel.setVisible(true);
@@ -225,6 +308,9 @@ public class MainUI {
                     if (String.valueOf(reqPanddingBox.getSelectedItem()).startsWith("CBC")) {
                         reqIvLabel.setVisible(true);
                         reqIvField.setVisible(true);
+                    } else {
+                        reqIvLabel.setVisible(false);
+                        reqIvField.setVisible(false);
                     }
                 }
             }
@@ -265,11 +351,9 @@ public class MainUI {
         resCryptoTypeBox.addActionListener(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (reqCryptoTypeBox.getSelectedItem().equals("SM2")) {
+                if (reqCryptoTypeBox.getSelectedItem().equals("SM2") || reqCryptoTypeBox.getSelectedItem().equals("RSA")) {
                     resPanddingLabel.setVisible(false);
                     resPanddingBox.setVisible(false);
-                    resCodeTypeLabel.setVisible(false);
-                    resCodeTypeBox.setVisible(false);
                     resIvLabel.setVisible(false);
                     resIvField.setVisible(false);
                     resPublicKeyLabel.setVisible(true);
@@ -284,6 +368,9 @@ public class MainUI {
                     if (String.valueOf(reqPanddingBox.getSelectedItem()).startsWith("CBC")) {
                         resIvLabel.setVisible(true);
                         resIvField.setVisible(true);
+                    } else {
+                        resIvLabel.setVisible(false);
+                        resIvField.setVisible(false);
                     }
                 }
             }
@@ -320,19 +407,35 @@ public class MainUI {
         });
 
         //js扩展，代码框配置
-        codeTextArea = new RSyntaxTextArea(20, 10);
-        codeArea = (RSyntaxTextArea) codeTextArea;
-        codeArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JAVASCRIPT);
-        LanguageSupportFactory.get().register(codeArea);
-        codeArea.setMarkOccurrences(true);
-        codeArea.setCodeFoldingEnabled(true);
-        codeArea.setTabsEmulated(true);
-        ToolTipManager.sharedInstance().registerComponent(codeArea);
-        codeScPanel = new RTextScrollPane(codeArea);
-        RTextScrollPane scrollPane = (RTextScrollPane) codeScPanel;
-        scrollPane.setIconRowHeaderEnabled(true);
-        scrollPane.getGutter().setBookmarkingEnabled(true);
-        codeEditorPanel.add(scrollPane, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
+//        codeTextArea = new RSyntaxTextArea(45, 45);
+//        codeTextArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JAVASCRIPT);
+//        //LanguageSupportFactory.get().register(codeTextArea);
+////        codeTextArea.setMarkOccurrences(true);
+////        codeTextArea.setCodeFoldingEnabled(true);
+////        codeTextArea.setTabsEmulated(true);
+//
+//
+//        //ToolTipManager.sharedInstance().registerComponent(codeTextArea);
+//        codeScPanel = new RTextScrollPane(codeTextArea, true);
+//        codeScPanel.setIconRowHeaderEnabled(true);
+//        codeScPanel.getGutter().setBookmarkingEnabled(true);
+//        codeTextArea.setLineWrap(true);
+//        codeTextArea.setEnabled(true);
+//        codeEditorPanel.removeAll();
+//        codeEditorPanel.setBorder(new EmptyBorder(5, 20, 10, 20));
+//        codeEditorPanel.setLayout(new BoxLayout(codeEditorPanel, 1));
+//        codeEditorPanel.add(codeScPanel);
+
+        //JS扩展配置，保存JS代码
+        exSaveBt.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                engine = new JsEngine(burpExtender, codeTextArea.getText(), encodeTextField.getText(), decodeTextField.getText());
+                System.out.println(codeTextArea.getText());
+                engine.Init(codeTextArea.getText(), encodeTextField.getText(), decodeTextField.getText());
+                JOptionPane.showMessageDialog(null, "配置保存成功", "保存成功", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
     }
 
     public static void main(String[] args) {
@@ -354,6 +457,38 @@ public class MainUI {
         }
     }
 
+    public void desCrypto(boolean isEncode, String data) {
+        if (isEncode) {
+            String result = DesUtil.enCrypto(data, keyTextField.getText(), (String) panddingTypeComboBox.getSelectedItem(), (String) codeTypeComboBox.getSelectedItem(), ivTextField.getText());
+            cryptTextArea.setText(result);
+
+        } else {
+            String result = DesUtil.deCrypto(data, keyTextField.getText(), (String) panddingTypeComboBox.getSelectedItem(), ivTextField.getText());
+            cryptTextArea.setText(result);
+        }
+    }
+
+    public void desTripleCrypto(boolean isEncode, String data) {
+        if (isEncode) {
+            String result = DesUtil.enTripleDES(data, keyTextField.getText(), (String) panddingTypeComboBox.getSelectedItem(), (String) codeTypeComboBox.getSelectedItem(), ivTextField.getText());
+            cryptTextArea.setText(result);
+
+        } else {
+            String result = DesUtil.deTripleCrypto(data, keyTextField.getText(), (String) panddingTypeComboBox.getSelectedItem(), ivTextField.getText());
+            cryptTextArea.setText(result);
+        }
+    }
+
+    public void rsaCrypto(boolean isEncode, String data) {
+        if (isEncode) {
+            String result = RsaUtil.enCrypto(data, publicKeyTextField.getText(), (String) codeTypeComboBox.getSelectedItem());
+            cryptTextArea.setText(result);
+        } else {
+            String result = RsaUtil.deCrypto(data, keyTextField.getText());
+            cryptTextArea.setText(result);
+        }
+    }
+
     public void sm4Crypto(boolean isEncode, String data) {
         if (isEncode) {
             String result = SM4Util.Encrypt(data, keyTextField.getText(), (String) panddingTypeComboBox.getSelectedItem(), (String) codeTypeComboBox.getSelectedItem(), ivTextField.getText());
@@ -367,10 +502,20 @@ public class MainUI {
 
     public void sm2Crypto(boolean isEncode, String data) {
         if (isEncode) {
-            String result = SM2Util.Encrypt(data, publicKeyTextField.getText());
+            String result = SM2Util.Encrypt(data, publicKeyTextField.getText(), (String) codeTypeComboBox.getSelectedItem());
             cryptTextArea.setText(result);
         } else {
             String result = SM2Util.Decrypt(data, keyTextField.getText());
+            cryptTextArea.setText(result);
+        }
+    }
+
+    public void jsCrypto(boolean isEncode, String data) {
+        if (isEncode) {
+            String result = engine.encode(data);
+            cryptTextArea.setText(result);
+        } else {
+            String result = engine.decode(data);
             cryptTextArea.setText(result);
         }
     }
@@ -408,7 +553,10 @@ public class MainUI {
         reqCryptoTypeBox = new JComboBox();
         final DefaultComboBoxModel defaultComboBoxModel1 = new DefaultComboBoxModel();
         defaultComboBoxModel1.addElement("AES");
+        defaultComboBoxModel1.addElement("DES");
+        defaultComboBoxModel1.addElement("3DES");
         defaultComboBoxModel1.addElement("SM4");
+        defaultComboBoxModel1.addElement("RSA");
         defaultComboBoxModel1.addElement("SM2");
         defaultComboBoxModel1.addElement("JSEx");
         reqCryptoTypeBox.setModel(defaultComboBoxModel1);
@@ -503,7 +651,10 @@ public class MainUI {
         resCryptoTypeBox = new JComboBox();
         final DefaultComboBoxModel defaultComboBoxModel5 = new DefaultComboBoxModel();
         defaultComboBoxModel5.addElement("AES");
+        defaultComboBoxModel5.addElement("DES");
+        defaultComboBoxModel5.addElement("3DES");
         defaultComboBoxModel5.addElement("SM4");
+        defaultComboBoxModel5.addElement("RSA");
         defaultComboBoxModel5.addElement("SM2");
         defaultComboBoxModel5.addElement("JSEx");
         resCryptoTypeBox.setModel(defaultComboBoxModel5);
@@ -577,39 +728,61 @@ public class MainUI {
         exPanel = new JPanel();
         exPanel.setLayout(new GridLayoutManager(4, 1, new Insets(0, 0, 0, 0), -1, -1));
         tabbedPane1.addTab("JS扩展配置", exPanel);
-        final JPanel panel1 = new JPanel();
-        panel1.setLayout(new GridLayoutManager(3, 2, new Insets(0, 0, 0, 0), -1, -1));
-        exPanel.add(panel1, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        infoPanel = new JPanel();
+        infoPanel.setLayout(new GridLayoutManager(3, 2, new Insets(10, 20, 5, 5), -1, -1));
+        exPanel.add(infoPanel, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         final JLabel label5 = new JLabel();
+        Font label5Font = this.$$$getFont$$$(null, Font.BOLD, 16, label5.getFont());
+        if (label5Font != null) label5.setFont(label5Font);
+        label5.setForeground(new Color(-39373));
         label5.setText("JS扩展");
-        panel1.add(label5, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        infoPanel.add(label5, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final Spacer spacer12 = new Spacer();
-        panel1.add(spacer12, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
+        infoPanel.add(spacer12, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
         final Spacer spacer13 = new Spacer();
-        panel1.add(spacer13, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
+        infoPanel.add(spacer13, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         final JLabel label6 = new JLabel();
-        label6.setText("在此直接使用JS代码，其中主要编写两个函数即可，即enCrypto以及deCrypto函数");
-        panel1.add(label6, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        label6.setText("在此直接使用JS代码，已经自动引用crypto-js库，全局名称为CryptoJs，下方只需要编写加密以及解密函数即可。此外由于js引擎特性变量定义好像只能用var，其他的会报错");
+        infoPanel.add(label6, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final Spacer spacer14 = new Spacer();
         exPanel.add(spacer14, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         codeEditorPanel = new JPanel();
-        codeEditorPanel.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
+        codeEditorPanel.setLayout(new GridLayoutManager(1, 1, new Insets(5, 20, 10, 20), -1, -1));
         exPanel.add(codeEditorPanel, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        codeScPanel = new JScrollPane();
-        codeEditorPanel.add(codeScPanel, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
-        codeTextArea = new JTextArea();
+        codeScPanel = new RTextScrollPane();
+        codeScPanel.setIconRowHeaderEnabled(true);
+        codeScPanel.setLineNumbersEnabled(true);
+        codeEditorPanel.add(codeScPanel, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        codeTextArea = new RSyntaxTextArea();
+        codeTextArea.setColumns(0);
+        codeTextArea.setEditable(true);
+        codeTextArea.setLineWrap(true);
+        codeTextArea.setRows(45);
+        codeTextArea.setSyntaxEditingStyle("text/javascript");
         codeScPanel.setViewportView(codeTextArea);
-        final JPanel panel2 = new JPanel();
-        panel2.setLayout(new GridLayoutManager(1, 3, new Insets(0, 0, 0, 0), -1, -1));
-        exPanel.add(panel2, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        button1 = new JButton();
-        button1.setText("Button");
-        panel2.add(button1, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        final Spacer spacer15 = new Spacer();
-        panel2.add(spacer15, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
-        button2 = new JButton();
-        button2.setText("Button");
-        panel2.add(button2, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final JPanel panel1 = new JPanel();
+        panel1.setLayout(new GridLayoutManager(1, 5, new Insets(10, 20, 0, 0), -1, -1));
+        exPanel.add(panel1, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        enPanel = new JPanel();
+        enPanel.setLayout(new GridLayoutManager(1, 2, new Insets(0, 0, 0, 0), -1, -1));
+        panel1.add(enPanel, new GridConstraints(0, 0, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        encodeTextField = new JTextField();
+        encodeTextField.setText("");
+        enPanel.add(encodeTextField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        enLabel = new JLabel();
+        enLabel.setText("加密函数名称：");
+        enPanel.add(enLabel, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        dePanel = new JPanel();
+        dePanel.setLayout(new GridLayoutManager(1, 3, new Insets(0, 0, 0, 10), -1, -1));
+        panel1.add(dePanel, new GridConstraints(0, 2, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        decodeTextField = new JTextField();
+        dePanel.add(decodeTextField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        deLabel = new JLabel();
+        deLabel.setText("解密函数名称：");
+        dePanel.add(deLabel, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        exSaveBt = new JButton();
+        exSaveBt.setText("保存配置");
+        dePanel.add(exSaveBt, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         cryptoPanel = new JPanel();
         cryptoPanel.setLayout(new GridLayoutManager(2, 4, new Insets(0, 0, 0, 0), -1, -1));
         tabbedPane1.addTab("解码工具", cryptoPanel);
@@ -619,14 +792,17 @@ public class MainUI {
         cryptoTypeComboBox = new JComboBox();
         final DefaultComboBoxModel defaultComboBoxModel8 = new DefaultComboBoxModel();
         defaultComboBoxModel8.addElement("AES");
+        defaultComboBoxModel8.addElement("DES");
+        defaultComboBoxModel8.addElement("3DES");
         defaultComboBoxModel8.addElement("SM4");
+        defaultComboBoxModel8.addElement("RSA");
         defaultComboBoxModel8.addElement("SM2");
         defaultComboBoxModel8.addElement("JSEx");
         cryptoTypeComboBox.setModel(defaultComboBoxModel8);
         cryptoTypeComboBox.setToolTipText("");
         confPanel.add(cryptoTypeComboBox, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        final Spacer spacer16 = new Spacer();
-        confPanel.add(spacer16, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
+        final Spacer spacer15 = new Spacer();
+        confPanel.add(spacer15, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
         panddingTypeComboBox = new JComboBox();
         final DefaultComboBoxModel defaultComboBoxModel9 = new DefaultComboBoxModel();
         defaultComboBoxModel9.addElement("ECB/PKCS5Padding");
@@ -665,8 +841,8 @@ public class MainUI {
         codeTypeLabel = new JLabel();
         codeTypeLabel.setText("编码方式：");
         confPanel.add(codeTypeLabel, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_EAST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        final Spacer spacer17 = new Spacer();
-        cryptoPanel.add(spacer17, new GridConstraints(1, 3, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
+        final Spacer spacer16 = new Spacer();
+        cryptoPanel.add(spacer16, new GridConstraints(1, 3, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         textPanel = new JPanel();
         textPanel.setLayout(new GridLayoutManager(1, 3, new Insets(10, 20, 150, 20), -1, -1));
         cryptoPanel.add(textPanel, new GridConstraints(1, 0, 1, 3, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
@@ -675,15 +851,15 @@ public class MainUI {
         sourceTextArea = new JTextArea();
         sourceTextArea.setLineWrap(true);
         scrollPane1.setViewportView(sourceTextArea);
-        final JPanel panel3 = new JPanel();
-        panel3.setLayout(new GridLayoutManager(2, 1, new Insets(0, 0, 0, 0), -1, -1));
-        textPanel.add(panel3, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        final JPanel panel2 = new JPanel();
+        panel2.setLayout(new GridLayoutManager(2, 1, new Insets(0, 0, 0, 0), -1, -1));
+        textPanel.add(panel2, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         decodeButton = new JButton();
         decodeButton.setText("解密");
-        panel3.add(decodeButton, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel2.add(decodeButton, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         encodeButton = new JButton();
         encodeButton.setText("加密");
-        panel3.add(encodeButton, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel2.add(encodeButton, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JScrollPane scrollPane2 = new JScrollPane();
         textPanel.add(scrollPane2, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         cryptTextArea = new JTextArea();
